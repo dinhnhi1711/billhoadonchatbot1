@@ -7,7 +7,7 @@ st.image("logo.jpg")
 # CẤU HÌNH TRANG
 # =========================
 st.set_page_config(
-    page_title="Tính Bill Trà Sữa",
+    page_title="Trà Sữa Bí",
     page_icon="🧋",
     layout="centered"
 )
