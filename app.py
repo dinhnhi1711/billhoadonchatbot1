@@ -1,57 +1,35 @@
 import streamlit as st
 from datetime import datetime
 from io import BytesIO
-st.image("logo.jpg")
 
 # =========================================================
-# CẤU HÌNH APP
+# CẤU HÌNH
 # =========================================================
 
 st.set_page_config(
-    page_title="Tính Bill Trà Sữa",
+    page_title="Quản lý Bill Trà Sữa",
     page_icon="🧋",
     layout="wide"
 )
 
 # =========================================================
-# DỮ LIỆU MENU
-# Bạn có thể thay đổi tên và giá tại đây
+# MENU TRÀ SỮA
 # =========================================================
 
 MENU = {
-    "Trà sữa truyền thống": {
-        "M": 30000,
-        "L": 35000
-    },
-    "Trà sữa matcha": {
-        "M": 35000,
-        "L": 40000
-    },
-    "Trà sữa socola": {
-        "M": 35000,
-        "L": 40000
-    },
-    "Trà sữa khoai môn": {
-        "M": 35000,
-        "L": 40000
-    },
-    "Trà sữa thái xanh": {
-        "M": 30000,
-        "L": 35000
-    },
-    "Trà sữa thái đỏ": {
-        "M": 30000,
-        "L": 35000
-    },
-    "Trà đào": {
-        "M": 30000,
-        "L": 35000
-    },
-    "Trà vải": {
-        "M": 30000,
-        "L": 35000
-    },
+    "Trà sữa truyền thống": {"M": 30000, "L": 35000},
+    "Trà sữa matcha": {"M": 35000, "L": 40000},
+    "Trà sữa socola": {"M": 35000, "L": 40000},
+    "Trà sữa khoai môn": {"M": 35000, "L": 40000},
+    "Trà sữa thái xanh": {"M": 30000, "L": 35000},
+    "Trà sữa thái đỏ": {"M": 30000, "L": 35000},
+    "Trà đào": {"M": 30000, "L": 35000},
+    "Trà vải": {"M": 30000, "L": 35000},
 }
+
+# =========================================================
+# TOPPING
+# =========================================================
 
 TOPPINGS = {
     "Không topping": 0,
@@ -63,133 +41,179 @@ TOPPINGS = {
     "Kem cheese": 10000,
 }
 
-SUGAR_LEVELS = ["100%", "70%", "50%", "30%", "0%"]
-ICE_LEVELS = ["100%", "70%", "50%", "30%", "0%"]
-TEA_LEVELS = ["100%", "70%", "50%", "30%"]
+# =========================================================
+# MỨC ĐỘ
+# =========================================================
+
+SUGAR_LEVELS = [
+    "100%",
+    "70%",
+    "50%",
+    "30%",
+    "0%"
+]
+
+ICE_LEVELS = [
+    "100%",
+    "70%",
+    "50%",
+    "30%",
+    "0%"
+]
+
+TEA_LEVELS = [
+    "100%",
+    "70%",
+    "50%",
+    "30%"
+]
 
 # =========================================================
 # SESSION STATE
 # =========================================================
 
-if "items" not in st.session_state:
-    st.session_state.items = []
+if "orders" not in st.session_state:
+    st.session_state.orders = []
 
 if "customer_name" not in st.session_state:
     st.session_state.customer_name = ""
 
 
 # =========================================================
-# HÀM TIỆN ÍCH
+# HÀM ĐỊNH DẠNG TIỀN
 # =========================================================
 
-def format_money(number):
-    """Định dạng tiền Việt Nam."""
-    return f"{number:,.0f} VNĐ".replace(",", ".")
+def money(value):
+    return f"{value:,.0f}".replace(",", ".") + " đ"
 
 
-def calculate_item_price(drink, size, topping):
-    """Tính giá 1 ly."""
-    return MENU[drink][size] + TOPPINGS[topping]
+# =========================================================
+# HÀM TẠO HÓA ĐƠN
+# =========================================================
 
+def create_invoice(customer_name, orders):
 
-def create_invoice(customer_name, items, total):
-    """Tạo nội dung hóa đơn."""
     now = datetime.now()
 
-    lines = []
-    lines.append("=" * 60)
-    lines.append("              HÓA ĐƠN TRÀ SỮA")
-    lines.append("=" * 60)
-    lines.append(f"Khách hàng : {customer_name}")
-    lines.append(
-        f"Thời gian  : {now.strftime('%d/%m/%Y %H:%M:%S')}"
+    total = sum(
+        item["total"]
+        for item in orders
     )
-    lines.append("-" * 60)
 
-    for index, item in enumerate(items, start=1):
-        lines.append(
-            f"{index}. {item['drink']} - Size {item['size']}"
-        )
-        lines.append(
-            f"   Số lượng : {item['quantity']}"
-        )
-        lines.append(
-            f"   Topping  : {item['topping']}"
-        )
-        lines.append(
-            f"   Đường    : {item['sugar']}"
-        )
-        lines.append(
-            f"   Đá       : {item['ice']}"
-        )
-        lines.append(
-            f"   Trà      : {item['tea']}"
-        )
-        lines.append(
-            f"   Đơn giá  : {format_money(item['unit_price'])}"
-        )
-        lines.append(
-            f"   Thành tiền: {format_money(item['total_price'])}"
-        )
-        lines.append("-" * 60)
+    text = ""
 
-    lines.append(
-        f"TỔNG THANH TOÁN: {format_money(total)}"
+    text += "=" * 55 + "\n"
+    text += "             HÓA ĐƠN TRÀ SỮA\n"
+    text += "=" * 55 + "\n"
+
+    text += f"Khách hàng: {customer_name}\n"
+    text += (
+        f"Thời gian: "
+        f"{now.strftime('%d/%m/%Y %H:%M:%S')}\n"
     )
-    lines.append("=" * 60)
-    lines.append("          Cảm ơn quý khách!")
-    lines.append("=" * 60)
 
-    return "\n".join(lines)
+    text += "-" * 55 + "\n"
+
+    for i, item in enumerate(orders, 1):
+
+        text += f"\n{i}. {item['drink']}\n"
+
+        text += (
+            f"   Size: {item['size']}\n"
+        )
+
+        text += (
+            f"   Số lượng: {item['quantity']}\n"
+        )
+
+        text += (
+            f"   Topping: {item['topping']}\n"
+        )
+
+        text += (
+            f"   Đường: {item['sugar']}\n"
+        )
+
+        text += (
+            f"   Đá: {item['ice']}\n"
+        )
+
+        text += (
+            f"   Trà: {item['tea']}\n"
+        )
+
+        text += (
+            f"   Đơn giá: {money(item['unit_price'])}\n"
+        )
+
+        text += (
+            f"   Thành tiền: {money(item['total'])}\n"
+        )
+
+        text += "-" * 55 + "\n"
+
+    text += "\n"
+    text += (
+        f"TỔNG THANH TOÁN: {money(total)}\n"
+    )
+
+    text += "=" * 55 + "\n"
+    text += "              CẢM ƠN QUÝ KHÁCH!\n"
+    text += "=" * 55 + "\n"
+
+    return text
 
 
 # =========================================================
-# GIAO DIỆN
+# TIÊU ĐỀ
 # =========================================================
 
-st.title("🧋 ỨNG DỤNG TÍNH BILL TRÀ SỮA")
+st.title("🧋 QUẢN LÝ BILL TRÀ SỮA")
 
-st.markdown(
-    "Nhập thông tin khách hàng và các món khách gọi. "
-    "Một hóa đơn có thể có nhiều loại trà sữa."
+st.write(
+    "Nhập thông tin khách hàng và thêm từng món vào hóa đơn."
 )
+
 
 # =========================================================
 # THÔNG TIN KHÁCH HÀNG
 # =========================================================
 
-st.subheader("👤 Thông tin khách hàng")
+st.header("👤 Thông tin khách hàng")
 
 customer_name = st.text_input(
     "Tên khách hàng",
     value=st.session_state.customer_name,
-    placeholder="Ví dụ: Nguyễn Văn An"
+    placeholder="Nhập tên khách hàng..."
 )
 
 st.session_state.customer_name = customer_name
 
-st.divider()
 
 # =========================================================
-# NHẬP MÓN
+# THÊM MÓN
 # =========================================================
 
-st.subheader("🧋 Thêm món")
+st.header("🧋 Thêm món")
 
-with st.form("add_item_form", clear_on_submit=False):
+with st.form("order_form"):
 
     col1, col2 = st.columns(2)
 
+    # -----------------------------------------------------
+    # CỘT 1
+    # -----------------------------------------------------
+
     with col1:
+
         drink = st.selectbox(
             "Loại trà sữa",
             list(MENU.keys())
         )
 
-        size = st.radio(
+        size = st.selectbox(
             "Size",
-            ["M", "L"],
-            horizontal=True
+            ["M", "L"]
         )
 
         quantity = st.number_input(
@@ -205,208 +229,204 @@ with st.form("add_item_form", clear_on_submit=False):
             list(TOPPINGS.keys())
         )
 
+    # -----------------------------------------------------
+    # CỘT 2
+    # -----------------------------------------------------
+
     with col2:
+
         sugar = st.selectbox(
             "Mức độ đường",
-            SUGAR_LEVELS,
-            index=0
+            SUGAR_LEVELS
         )
 
         ice = st.selectbox(
             "Mức độ đá",
-            ICE_LEVELS,
-            index=0
+            ICE_LEVELS
         )
 
         tea = st.selectbox(
             "Mức độ trà",
-            TEA_LEVELS,
-            index=0
+            TEA_LEVELS
         )
 
-    # Hiển thị giá dự kiến
-    unit_price = calculate_item_price(
-        drink,
-        size,
-        topping
+    # -----------------------------------------------------
+    # TÍNH GIÁ
+    # -----------------------------------------------------
+
+    unit_price = (
+        MENU[drink][size]
+        + TOPPINGS[topping]
     )
 
-    preview_total = unit_price * quantity
+    total_price = unit_price * quantity
 
     st.info(
-        f"Đơn giá: **{format_money(unit_price)}**  |  "
-        f"Thành tiền: **{format_money(preview_total)}**"
+        "Đơn giá: "
+        + money(unit_price)
+        + " | Thành tiền: "
+        + money(total_price)
     )
 
-    add_item = st.form_submit_button(
-        "➕ THÊM MÓN",
-        use_container_width=True
+    submitted = st.form_submit_button(
+        "➕ THÊM VÀO HÓA ĐƠN"
     )
-
-    if add_item:
-
-        if not customer_name.strip():
-            st.error("Vui lòng nhập tên khách hàng.")
-        else:
-
-            item = {
-                "drink": drink,
-                "size": size,
-                "quantity": quantity,
-                "topping": topping,
-                "sugar": sugar,
-                "ice": ice,
-                "tea": tea,
-                "unit_price": unit_price,
-                "total_price": preview_total
-            }
-
-            st.session_state.items.append(item)
-
-            st.success(
-                f"Đã thêm {quantity} ly {drink} size {size}."
-            )
 
 
 # =========================================================
-# HIỂN THỊ DANH SÁCH MÓN
+# XỬ LÝ THÊM MÓN
+# =========================================================
+
+if submitted:
+
+    if customer_name.strip() == "":
+
+        st.error(
+            "⚠️ Vui lòng nhập tên khách hàng."
+        )
+
+    else:
+
+        order = {
+            "drink": drink,
+            "size": size,
+            "quantity": quantity,
+            "topping": topping,
+            "sugar": sugar,
+            "ice": ice,
+            "tea": tea,
+            "unit_price": unit_price,
+            "total": total_price
+        }
+
+        st.session_state.orders.append(order)
+
+        st.success(
+            "✅ Đã thêm món vào hóa đơn."
+        )
+
+        st.rerun()
+
+
+# =========================================================
+# HIỂN THỊ HÓA ĐƠN HIỆN TẠI
 # =========================================================
 
 st.divider()
 
-st.subheader("🧾 Danh sách món đã gọi")
+st.header("🧾 HÓA ĐƠN HIỆN TẠI")
 
-if len(st.session_state.items) == 0:
+
+if len(st.session_state.orders) == 0:
 
     st.info(
-        "Chưa có món nào. Hãy nhập thông tin món ở phía trên."
+        "Chưa có món nào trong hóa đơn."
     )
 
 else:
 
     total_bill = 0
 
+    # -----------------------------------------------------
+    # HIỂN THỊ TỪNG MÓN
+    # -----------------------------------------------------
+
     for index, item in enumerate(
-        st.session_state.items
+        st.session_state.orders
     ):
 
-        with st.container(border=True):
+        st.subheader(
+            f"Món {index + 1}: {item['drink']}"
+        )
 
-            col1, col2, col3 = st.columns(
-                [4, 3, 1]
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+
+            st.write(
+                f"**Size:** {item['size']}"
             )
 
-            with col1:
+            st.write(
+                f"**Số lượng:** {item['quantity']}"
+            )
 
-                st.markdown(
-                    f"### {index + 1}. {item['drink']}"
-                )
+            st.write(
+                f"**Topping:** {item['topping']}"
+            )
 
-                st.write(
-                    f"**Size:** {item['size']}"
-                )
+        with col2:
 
-                st.write(
-                    f"**Topping:** {item['topping']}"
-                )
+            st.write(
+                f"**Đường:** {item['sugar']}"
+            )
 
-            with col2:
+            st.write(
+                f"**Đá:** {item['ice']}"
+            )
 
-                st.write(
-                    f"**Số lượng:** {item['quantity']}"
-                )
+            st.write(
+                f"**Trà:** {item['tea']}"
+            )
 
-                st.write(
-                    f"**Đường:** {item['sugar']}"
-                )
+        with col3:
 
-                st.write(
-                    f"**Đá:** {item['ice']}"
-                )
+            st.write(
+                f"**Đơn giá:** "
+                f"{money(item['unit_price'])}"
+            )
 
-                st.write(
-                    f"**Trà:** {item['tea']}"
-                )
+            st.write(
+                f"**Thành tiền:** "
+                f"{money(item['total'])}"
+            )
 
-            with col3:
+            if st.button(
+                "🗑️ Xóa món",
+                key=f"delete_{index}"
+            ):
 
-                st.write(
-                    f"Đơn giá:"
-                )
+                st.session_state.orders.pop(index)
 
-                st.write(
-                    f"**{format_money(item['unit_price'])}**"
-                )
+                st.rerun()
 
-                st.write(
-                    f"Thành tiền:"
-                )
+        st.divider()
 
-                st.write(
-                    f"**{format_money(item['total_price'])}**"
-                )
-
-                delete_item = st.button(
-                    "🗑️ Xóa",
-                    key=f"delete_{index}"
-                )
-
-                if delete_item:
-                    st.session_state.items.pop(index)
-                    st.rerun()
-
-        total_bill += item["total_price"]
+        total_bill += item["total"]
 
 
     # =====================================================
-    # TỔNG BILL
+    # TỔNG TIỀN
     # =====================================================
 
-    st.divider()
+    st.header("💰 TỔNG THANH TOÁN")
 
-    st.subheader("💰 Tổng thanh toán")
+    total_quantity = sum(
+        item["quantity"]
+        for item in st.session_state.orders
+    )
 
-    col1, col2 = st.columns([2, 1])
+    col1, col2, col3 = st.columns(3)
 
     with col1:
 
-        total_quantity = sum(
-            item["quantity"]
-            for item in st.session_state.items
-        )
-
-        st.write(
-            f"**Tổng số món:** {len(st.session_state.items)}"
-        )
-
-        st.write(
-            f"**Tổng số ly:** {total_quantity}"
+        st.metric(
+            "Số loại món",
+            len(st.session_state.orders)
         )
 
     with col2:
 
-        st.markdown(
-            f"""
-            <div style="
-                background-color:#fff3cd;
-                padding:20px;
-                border-radius:12px;
-                text-align:center;
-                border:1px solid #ffc107;
-            ">
-                <div style="font-size:18px;">
-                    TỔNG TIỀN
-                </div>
-                <div style="
-                    font-size:32px;
-                    font-weight:bold;
-                    color:#d63384;
-                ">
-                    {format_money(total_bill)}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
+        st.metric(
+            "Tổng số ly",
+            total_quantity
+        )
+
+    with col3:
+
+        st.metric(
+            "Tổng tiền",
+            money(total_bill)
         )
 
 
@@ -416,88 +436,61 @@ else:
 
     st.divider()
 
-    st.subheader("💳 Thanh toán")
+    st.header("💳 Thanh toán")
 
-    if not customer_name.strip():
+    if st.button(
+        "💳 THANH TOÁN & XUẤT HÓA ĐƠN",
+        type="primary",
+        use_container_width=True
+    ):
 
-        st.warning(
-            "Vui lòng nhập tên khách hàng trước khi thanh toán."
+        invoice_text = create_invoice(
+            customer_name,
+            st.session_state.orders
         )
 
-    else:
+        current_time = datetime.now()
 
-        if st.button(
-            "💳 THANH TOÁN & XUẤT HÓA ĐƠN",
-            type="primary",
-            use_container_width=True
-        ):
-
-            invoice = create_invoice(
-                customer_name,
-                st.session_state.items,
-                total_bill
-            )
-
-            # Tạo tên file an toàn
-            safe_name = "".join(
-                c for c in customer_name
-                if c.isalnum() or c in " _-"
-            ).strip()
-
-            if not safe_name:
-                safe_name = "khach_hang"
-
-            timestamp = datetime.now().strftime(
+        filename = (
+            "hoa_don_"
+            + current_time.strftime(
                 "%Y%m%d_%H%M%S"
             )
+            + ".txt"
+        )
 
-            filename = (
-                f"hoa_don_{safe_name}_{timestamp}.txt"
-            )
+        st.success(
+            "✅ Thanh toán thành công!"
+        )
 
-            st.success(
-                "✅ Thanh toán thành công!"
-            )
+        st.download_button(
+            label="📥 TẢI HÓA ĐƠN",
+            data=invoice_text.encode("utf-8"),
+            file_name=filename,
+            mime="text/plain",
+            use_container_width=True
+        )
 
-            st.download_button(
-                label="📄 TẢI FILE HÓA ĐƠN",
-                data=invoice.encode("utf-8"),
-                file_name=filename,
-                mime="text/plain",
-                use_container_width=True
-            )
-
-            st.text_area(
-                "Nội dung hóa đơn",
-                invoice,
-                height=400
-            )
+        st.text_area(
+            "Xem trước hóa đơn",
+            invoice_text,
+            height=450
+        )
 
 
 # =========================================================
-# NÚT XÓA TOÀN BỘ ĐƠN
+# XÓA HÓA ĐƠN
 # =========================================================
 
-if len(st.session_state.items) > 0:
+if len(st.session_state.orders) > 0:
 
     st.divider()
 
     if st.button(
-        "🗑️ XÓA TOÀN BỘ ĐƠN",
+        "🗑️ XÓA TOÀN BỘ HÓA ĐƠN",
         use_container_width=True
     ):
 
-        st.session_state.items = []
+        st.session_state.orders = []
+
         st.rerun()
-
-
-# =========================================================
-# FOOTER
-# =========================================================
-
-st.divider()
-
-st.caption(
-    "🧋 Ứng dụng tính bill trà sữa | "
-    "Có thể tùy chỉnh menu và giá trong biến MENU ở đầu file."
-)
