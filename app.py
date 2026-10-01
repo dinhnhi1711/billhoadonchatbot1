@@ -1,7 +1,5 @@
 import streamlit as st
 from datetime import datetime
-from io import BytesIO
-st.image("logo.jpg")
 
 # =========================
 # CẤU HÌNH TRANG
@@ -11,6 +9,13 @@ st.set_page_config(
     page_icon="🧋",
     layout="centered"
 )
+
+# Hiển thị logo nếu file tồn tại
+try:
+    st.image("logo.jpg", use_container_width=True)
+except:
+    pass
+
 
 # =========================
 # DỮ LIỆU MENU
@@ -53,10 +58,53 @@ def format_money(number):
 
 
 # =========================
+# KHỞI TẠO SESSION STATE
+# =========================
+if "cart" not in st.session_state:
+    st.session_state.cart = []
+
+
+# =========================
+# HÀM THÊM MÓN
+# =========================
+def add_to_cart(drink, quantity, topping, sugar, ice, tea):
+    drink_price = MENU[drink]
+    topping_price = TOPPINGS[topping]
+
+    unit_price = drink_price + topping_price
+    total_price = unit_price * quantity
+
+    item = {
+        "drink": drink,
+        "quantity": quantity,
+        "topping": topping,
+        "sugar": sugar,
+        "ice": ice,
+        "tea": tea,
+        "drink_price": drink_price,
+        "topping_price": topping_price,
+        "unit_price": unit_price,
+        "total_price": total_price,
+    }
+
+    st.session_state.cart.append(item)
+
+
+# =========================
+# HÀM XÓA TOÀN BỘ GIỎ HÀNG
+# =========================
+def clear_cart():
+    st.session_state.cart = []
+
+
+# =========================
 # TIÊU ĐỀ
 # =========================
 st.title("🧋 QUẢN LÝ BILL QUÁN TRÀ SỮA")
-st.caption("Nhập thông tin đơn hàng và xuất hóa đơn sau khi thanh toán.")
+st.caption(
+    "Một khách hàng có thể gọi nhiều loại trà sữa trong cùng một hóa đơn."
+)
+
 
 # =========================
 # THÔNG TIN KHÁCH HÀNG
@@ -68,14 +116,18 @@ customer_name = st.text_input(
     placeholder="Ví dụ: Nguyễn Văn An"
 )
 
+
 # =========================
-# NHẬP ĐƠN HÀNG
+# THÊM MÓN
 # =========================
-st.subheader("🧋 Thông tin đồ uống")
+st.divider()
+st.subheader("🧋 Thêm món vào đơn hàng")
+
 
 drink = st.selectbox(
-    "Loại trà sữa",
-    list(MENU.keys())
+    "Loại trà sữa / món",
+    list(MENU.keys()),
+    key="drink_select"
 )
 
 quantity = st.number_input(
@@ -83,164 +135,296 @@ quantity = st.number_input(
     min_value=1,
     max_value=100,
     value=1,
-    step=1
+    step=1,
+    key="quantity_select"
 )
 
 topping = st.selectbox(
     "Topping",
-    list(TOPPINGS.keys())
+    list(TOPPINGS.keys()),
+    key="topping_select"
 )
+
 
 col1, col2 = st.columns(2)
 
 with col1:
     sugar = st.selectbox(
         "🍬 Mức độ đường",
-        SUGAR_LEVELS
+        SUGAR_LEVELS,
+        key="sugar_select"
     )
 
     tea = st.selectbox(
         "🍵 Mức độ trà",
-        TEA_LEVELS
+        TEA_LEVELS,
+        key="tea_select"
     )
 
 with col2:
     ice = st.selectbox(
         "🧊 Mức độ đá",
-        ICE_LEVELS
+        ICE_LEVELS,
+        key="ice_select"
     )
 
+
 # =========================
-# TÍNH TIỀN
+# GIÁ MÓN ĐANG CHỌN
 # =========================
 drink_price = MENU[drink]
 topping_price = TOPPINGS[topping]
-
 unit_price = drink_price + topping_price
-total_price = unit_price * quantity
+current_total = unit_price * quantity
 
-# =========================
-# HIỂN THỊ KẾT QUẢ
-# =========================
-st.divider()
-st.subheader("🧾 Thông tin đơn hàng")
-
-result_col1, result_col2 = st.columns(2)
-
-with result_col1:
-    st.write(f"**Khách hàng:** {customer_name if customer_name else 'Chưa nhập tên'}")
-    st.write(f"**Trà sữa:** {drink}")
-    st.write(f"**Số lượng:** {quantity}")
-    st.write(f"**Topping:** {topping}")
-
-with result_col2:
-    st.write(f"**Đường:** {sugar}")
-    st.write(f"**Đá:** {ice}")
-    st.write(f"**Trà:** {tea}")
-    st.write(f"**Đơn giá:** {format_money(unit_price)}")
-
-st.divider()
-
-st.markdown(
-    f"""
-    <div style="
-        background-color:#FFF3CD;
-        padding:20px;
-        border-radius:12px;
-        text-align:center;
-        border:1px solid #FFC107;
-    ">
-        <h3 style="margin:0;color:#856404;">
-            💰 TỔNG TIỀN THANH TOÁN
-        </h3>
-        <h1 style="margin:10px 0;color:#D35400;">
-            {format_money(total_price)}
-        </h1>
-    </div>
-    """,
-    unsafe_allow_html=True
+st.info(
+    f"💰 Đơn giá: **{format_money(unit_price)}**  |  "
+    f"Thành tiền: **{format_money(current_total)}**"
 )
 
-# =========================
-# TẠO NỘI DUNG HÓA ĐƠN
-# =========================
-def create_invoice():
-    now = datetime.now()
 
-    invoice = f"""
+# =========================
+# NÚT THÊM MÓN
+# =========================
+if st.button(
+    "➕ THÊM MÓN VÀO ĐƠN",
+    type="primary",
+    use_container_width=True
+):
+    add_to_cart(
+        drink,
+        quantity,
+        topping,
+        sugar,
+        ice,
+        tea
+    )
+
+    st.success(
+        f"✅ Đã thêm {quantity} × {drink} vào đơn hàng!"
+    )
+
+
+# =========================
+# HIỂN THỊ GIỎ HÀNG
+# =========================
+st.divider()
+st.subheader("🛒 Đơn hàng hiện tại")
+
+
+if not st.session_state.cart:
+
+    st.info(
+        "Chưa có món nào trong đơn hàng. "
+        "Hãy chọn món rồi bấm **THÊM MÓN VÀO ĐƠN**."
+    )
+
+else:
+
+    grand_total = 0
+    total_quantity = 0
+
+    for index, item in enumerate(st.session_state.cart):
+
+        st.markdown(f"### 🧋 Món {index + 1}")
+
+        col1, col2 = st.columns([4, 1])
+
+        with col1:
+
+            st.write(
+                f"**{item['drink']}** × {item['quantity']}"
+            )
+
+            st.write(
+                f"🥤 Topping: {item['topping']}"
+            )
+
+            st.write(
+                f"🍬 Đường: {item['sugar']}  |  "
+                f"🧊 Đá: {item['ice']}  |  "
+                f"🍵 Trà: {item['tea']}"
+            )
+
+            st.write(
+                f"💵 Đơn giá: {format_money(item['unit_price'])}"
+            )
+
+            st.write(
+                f"💰 Thành tiền: **{format_money(item['total_price'])}**"
+            )
+
+        with col2:
+
+            if st.button(
+                "🗑️ Xóa",
+                key=f"delete_{index}",
+                use_container_width=True
+            ):
+                st.session_state.cart.pop(index)
+                st.rerun()
+
+        grand_total += item["total_price"]
+        total_quantity += item["quantity"]
+
+        st.divider()
+
+
+    # =========================
+    # TỔNG ĐƠN HÀNG
+    # =========================
+    st.subheader("💰 Tổng đơn hàng")
+
+    total_col1, total_col2 = st.columns(2)
+
+    with total_col1:
+        st.metric(
+            "Tổng số món",
+            total_quantity
+        )
+
+    with total_col2:
+        st.metric(
+            "Tổng tiền",
+            format_money(grand_total)
+        )
+
+
+    st.markdown(
+        f"""
+        <div style="
+            background-color:#FFF3CD;
+            padding:20px;
+            border-radius:12px;
+            text-align:center;
+            border:1px solid #FFC107;
+            margin-top:10px;
+            margin-bottom:20px;
+        ">
+            <h3 style="margin:0;color:#856404;">
+                💰 TỔNG TIỀN THANH TOÁN
+            </h3>
+
+            <h1 style="
+                margin:10px 0;
+                color:#D35400;
+            ">
+                {format_money(grand_total)}
+            </h1>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+    # =========================
+    # TẠO HÓA ĐƠN
+    # =========================
+    def create_invoice():
+
+        now = datetime.now()
+
+        customer = (
+            customer_name.strip()
+            if customer_name.strip()
+            else "Khách lẻ"
+        )
+
+        invoice = f"""
 ========================================
-        HÓA ĐƠN TRÀ SỮA
+          HÓA ĐƠN TRÀ SỮA
 ========================================
 
 Ngày giờ: {now.strftime("%d/%m/%Y %H:%M:%S")}
 
-Khách hàng: {customer_name if customer_name else "Khách lẻ"}
+Khách hàng: {customer}
 
+========================================
+              CHI TIẾT ĐƠN
+========================================
+"""
+
+        for index, item in enumerate(st.session_state.cart):
+
+            invoice += f"""
 ----------------------------------------
-THÔNG TIN ĐỒ UỐNG
-----------------------------------------
-
-Trà sữa       : {drink}
-Số lượng      : {quantity}
-Topping       : {topping}
-
-Mức độ đường  : {sugar}
-Mức độ đá     : {ice}
-Mức độ trà    : {tea}
-
-----------------------------------------
-CHI TIẾT THANH TOÁN
+MÓN {index + 1}
 ----------------------------------------
 
-Giá trà sữa   : {format_money(drink_price)}
-Giá topping   : {format_money(topping_price)}
-Đơn giá       : {format_money(unit_price)}
+Tên món       : {item['drink']}
+Số lượng      : {item['quantity']}
+Topping       : {item['topping']}
 
-Số lượng      : {quantity}
+Mức độ đường  : {item['sugar']}
+Mức độ đá     : {item['ice']}
+Mức độ trà    : {item['tea']}
 
-----------------------------------------
-TỔNG THANH TOÁN: {format_money(total_price)}
-----------------------------------------
+Giá trà sữa   : {format_money(item['drink_price'])}
+Giá topping   : {format_money(item['topping_price'])}
+Đơn giá       : {format_money(item['unit_price'])}
 
-        CẢM ƠN QUÝ KHÁCH!
-       HẸN GẶP LẠI ❤️
+Thành tiền    : {format_money(item['total_price'])}
+"""
+
+        invoice += f"""
+========================================
+TỔNG SỐ MÓN    : {total_quantity}
+TỔNG THANH TOÁN: {format_money(grand_total)}
+========================================
+
+          CẢM ƠN QUÝ KHÁCH!
+         HẸN GẶP LẠI ❤️
 
 ========================================
 """
 
-    return invoice
+        return invoice
 
 
-# =========================
-# THANH TOÁN
-# =========================
-st.divider()
+    # =========================
+    # THANH TOÁN
+    # =========================
+    st.divider()
 
-if st.button(
-    "💳 THANH TOÁN & XUẤT HÓA ĐƠN",
-    type="primary",
-    use_container_width=True
-):
-    if not customer_name.strip():
-        customer_name = "Khách lẻ"
-
-    invoice_content = create_invoice()
-
-    st.success("✅ Thanh toán thành công!")
-
-    st.subheader("📄 Hóa đơn")
-
-    st.code(invoice_content, language="text")
-
-    file_name = (
-        f"hoa_don_"
-        f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-    )
-
-    st.download_button(
-        label="📥 TẢI HÓA ĐƠN",
-        data=invoice_content.encode("utf-8"),
-        file_name=file_name,
-        mime="text/plain",
+    if st.button(
+        "💳 THANH TOÁN & XUẤT HÓA ĐƠN",
+        type="primary",
         use_container_width=True
-    )
+    ):
+
+        invoice_content = create_invoice()
+
+        st.success(
+            "✅ Thanh toán thành công!"
+        )
+
+        st.subheader("📄 Hóa đơn")
+
+        st.code(
+            invoice_content,
+            language="text"
+        )
+
+        file_name = (
+            "hoa_don_"
+            f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        )
+
+        st.download_button(
+            label="📥 TẢI HÓA ĐƠN",
+            data=invoice_content.encode("utf-8"),
+            file_name=file_name,
+            mime="text/plain",
+            use_container_width=True
+        )
+
+
+    # =========================
+    # XÓA ĐƠN HÀNG
+    # =========================
+    if st.button(
+        "🗑️ XÓA TOÀN BỘ ĐƠN HÀNG",
+        use_container_width=True
+    ):
+        clear_cart()
+        st.rerun()
