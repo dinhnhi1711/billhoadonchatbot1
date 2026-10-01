@@ -1,7 +1,5 @@
 import streamlit as st
 from datetime import datetime
-from io import BytesIO
-st.image("logo.jpg")
 
 # =========================================================
 # CẤU HÌNH
@@ -14,22 +12,77 @@ st.set_page_config(
 )
 
 # =========================================================
-# MENU TRÀ SỮA
+# LOGO
+# =========================================================
+
+try:
+    st.image("logo.jpg", width=250)
+except:
+    pass
+
+
+# =========================================================
+# MENU
 # =========================================================
 
 MENU = {
-    "Trà sữa truyền thống": {"M": 30000, "L": 35000},
-    "Trà sữa matcha": {"M": 35000, "L": 40000},
-    "Trà sữa socola": {"M": 35000, "L": 40000},
-    "Trà sữa khoai môn": {"M": 35000, "L": 40000},
-    "Trà sữa thái xanh": {"M": 30000, "L": 35000},
-    "Trà sữa thái đỏ": {"M": 30000, "L": 35000},
-    "Trà đào": {"M": 30000, "L": 35000},
-    "Trà vải": {"M": 30000, "L": 35000},
-    "Trà trái cây": {"M": 30000, "L": 35000},
-    "Trà mãng cầu": {"M": 30000, "L": 35000},
-    "Bánh tráng phơi sương trứng cút": 25000,
+    "Trà sữa truyền thống": {
+        "M": 30000,
+        "L": 35000
+    },
+
+    "Trà sữa matcha": {
+        "M": 35000,
+        "L": 40000
+    },
+
+    "Trà sữa socola": {
+        "M": 35000,
+        "L": 40000
+    },
+
+    "Trà sữa khoai môn": {
+        "M": 35000,
+        "L": 40000
+    },
+
+    "Trà sữa thái xanh": {
+        "M": 30000,
+        "L": 35000
+    },
+
+    "Trà sữa thái đỏ": {
+        "M": 30000,
+        "L": 35000
+    },
+
+    "Trà đào": {
+        "M": 30000,
+        "L": 35000
+    },
+
+    "Trà vải": {
+        "M": 30000,
+        "L": 35000
+    },
+
+    "Trà trái cây": {
+        "M": 30000,
+        "L": 35000
+    },
+
+    "Trà mãng cầu": {
+        "M": 30000,
+        "L": 35000
+    },
+
+    # Món không có size
+    "Bánh tráng phơi sương trứng cút": {
+        "M": 25000,
+        "L": 25000
+    }
 }
+
 
 # =========================================================
 # TOPPING
@@ -44,6 +97,7 @@ TOPPINGS = {
     "Pudding trứng": 7000,
     "Kem cheese": 10000,
 }
+
 
 # =========================================================
 # MỨC ĐỘ
@@ -72,6 +126,7 @@ TEA_LEVELS = [
     "30%"
 ]
 
+
 # =========================================================
 # SESSION STATE
 # =========================================================
@@ -82,6 +137,9 @@ if "orders" not in st.session_state:
 if "customer_name" not in st.session_state:
     st.session_state.customer_name = ""
 
+if "chat_messages" not in st.session_state:
+    st.session_state.chat_messages = []
+
 
 # =========================================================
 # HÀM ĐỊNH DẠNG TIỀN
@@ -89,6 +147,292 @@ if "customer_name" not in st.session_state:
 
 def money(value):
     return f"{value:,.0f}".replace(",", ".") + " đ"
+
+
+# =========================================================
+# HÀM LẤY GIÁ
+# =========================================================
+
+def get_price(drink, size):
+
+    return MENU[drink][size]
+
+
+# =========================================================
+# CHATBOT
+# =========================================================
+
+def chatbot_answer(question):
+
+    q = question.lower().strip()
+
+    # -----------------------------------------------------
+    # CHÀO HỎI
+    # -----------------------------------------------------
+
+    if any(word in q for word in [
+        "xin chào",
+        "hello",
+        "hi",
+        "chào"
+    ]):
+
+        return (
+            "Xin chào 👋 Mình là trợ lý của quán trà sữa. "
+            "Mình có thể tư vấn món, topping, giá, "
+            "best seller, giao hàng và chương trình khuyến mãi "
+            "cho bạn."
+        )
+
+
+    # -----------------------------------------------------
+    # TƯ VẤN
+    # -----------------------------------------------------
+
+    if (
+        "tư vấn" in q
+        or "tư vấn cho mình" in q
+        or "tư vấn món" in q
+    ):
+
+        return (
+            "Tất nhiên rồi 🧋😊\n\n"
+            "Nếu bạn thích vị truyền thống, mình gợi ý "
+            "**Trà sữa truyền thống**.\n\n"
+            "Nếu bạn thích vị thơm, béo và nhẹ nhàng, "
+            "có thể thử **Trà sữa matcha** hoặc "
+            "**Trà sữa khoai môn**.\n\n"
+            "Nếu thích vị trái cây, bạn có thể thử "
+            "**Trà đào, Trà vải, Trà trái cây hoặc Trà mãng cầu**.\n\n"
+            "Bạn cũng có thể thêm **trân châu, thạch hoặc pudding**."
+        )
+
+
+    # -----------------------------------------------------
+    # BEST SELLER
+    # -----------------------------------------------------
+
+    if (
+        "best seller" in q
+        or "bán chạy" in q
+        or "món bán chạy" in q
+        or "món ngon nhất" in q
+        or "món nào ngon" in q
+    ):
+
+        return (
+            "⭐ Các món được quán giới thiệu nổi bật gồm:\n\n"
+            "🥇 **Trà sữa truyền thống** – vị quen thuộc, "
+            "dễ uống.\n\n"
+            "🥈 **Trà sữa matcha** – thơm vị matcha, "
+            "phù hợp với người thích vị thanh nhẹ.\n\n"
+            "🥉 **Trà sữa khoai môn** – béo và thơm.\n\n"
+            "Nếu bạn thích vị trái cây, mình gợi ý "
+            "**Trà đào hoặc Trà mãng cầu**."
+        )
+
+
+    # -----------------------------------------------------
+    # GIAO HÀNG
+    # -----------------------------------------------------
+
+    if (
+        "giao hàng" in q
+        or "giao hang" in q
+        or "ship" in q
+        or "giao ngay" in q
+        or "giao liền" in q
+    ):
+
+        return (
+            "🛵 Quán có hỗ trợ giao hàng.\n\n"
+            "Bạn vui lòng cung cấp địa chỉ nhận hàng "
+            "và số điện thoại để quán kiểm tra khả năng "
+            "giao đến khu vực của bạn nhé.\n\n"
+            "Thời gian giao hàng thực tế có thể phụ thuộc "
+            "vào khoảng cách và tình trạng đơn hàng."
+        )
+
+
+    # -----------------------------------------------------
+    # KHUYẾN MÃI
+    # -----------------------------------------------------
+
+    if (
+        "khuyến mãi" in q
+        or "khuyen mai" in q
+        or "ưu đãi" in q
+        or "giảm giá" in q
+        or "giam gia" in q
+        or "promotion" in q
+    ):
+
+        return (
+            "🎁 Hiện quán đang có các chương trình ưu đãi "
+            "dành cho khách hàng.\n\n"
+            "Bạn có thể hỏi nhân viên tại quầy để biết "
+            "chương trình áp dụng trong ngày.\n\n"
+            "💡 Nếu bạn muốn, mình cũng có thể giúp bạn "
+            "chọn món phù hợp với ngân sách."
+        )
+
+
+    # -----------------------------------------------------
+    # GIÁ
+    # -----------------------------------------------------
+
+    if (
+        "giá" in q
+        or "bao nhiêu tiền" in q
+        or "bao nhieu tien" in q
+        or "giá bao nhiêu" in q
+    ):
+
+        return (
+            "💰 Giá các món hiện tại:\n\n"
+            "• Trà sữa truyền thống: 30.000đ - 35.000đ\n"
+            "• Trà sữa matcha: 35.000đ - 40.000đ\n"
+            "• Trà sữa socola: 35.000đ - 40.000đ\n"
+            "• Trà sữa khoai môn: 35.000đ - 40.000đ\n"
+            "• Trà thái xanh: 30.000đ - 35.000đ\n"
+            "• Trà thái đỏ: 30.000đ - 35.000đ\n"
+            "• Trà đào: 30.000đ - 35.000đ\n"
+            "• Trà vải: 30.000đ - 35.000đ\n"
+            "• Trà trái cây: 30.000đ - 35.000đ\n"
+            "• Trà mãng cầu: 30.000đ - 35.000đ\n"
+            "• Bánh tráng phơi sương trứng cút: 25.000đ"
+        )
+
+
+    # -----------------------------------------------------
+    # TOPPING
+    # -----------------------------------------------------
+
+    if (
+        "topping" in q
+        or "thêm gì" in q
+        or "có topping" in q
+    ):
+
+        topping_text = "🧋 Quán hiện có các topping:\n\n"
+
+        for topping, price in TOPPINGS.items():
+
+            if price == 0:
+
+                topping_text += (
+                    f"• {topping}\n"
+                )
+
+            else:
+
+                topping_text += (
+                    f"• {topping}: {money(price)}\n"
+                )
+
+        return topping_text
+
+
+    # -----------------------------------------------------
+    # SIZE
+    # -----------------------------------------------------
+
+    if (
+        "size" in q
+        or "cỡ" in q
+        or "ly" in q
+    ):
+
+        return (
+            "🥤 Quán có 2 size:\n\n"
+            "• Size M\n"
+            "• Size L\n\n"
+            "Size L sẽ có giá cao hơn size M "
+            "đối với các món trà sữa và trà."
+        )
+
+
+    # -----------------------------------------------------
+    # ĐƯỜNG
+    # -----------------------------------------------------
+
+    if (
+        "đường" in q
+        or "ngọt" in q
+        or "độ ngọt" in q
+    ):
+
+        return (
+            "🍬 Quán có các mức đường:\n\n"
+            "100% - 70% - 50% - 30% - 0%\n\n"
+            "Nếu bạn không thích quá ngọt, mình gợi ý "
+            "50% hoặc 30% đường."
+        )
+
+
+    # -----------------------------------------------------
+    # ĐÁ
+    # -----------------------------------------------------
+
+    if (
+        "đá" in q
+        or "độ đá" in q
+    ):
+
+        return (
+            "🧊 Quán có các mức đá:\n\n"
+            "100% - 70% - 50% - 30% - 0%\n\n"
+            "Bạn có thể chọn mức đá phù hợp với sở thích."
+        )
+
+
+    # -----------------------------------------------------
+    # TRÀ
+    # -----------------------------------------------------
+
+    if (
+        "mức trà" in q
+        or "độ trà" in q
+        or "trà bao nhiêu" in q
+    ):
+
+        return (
+            "🍵 Mức trà hiện có:\n\n"
+            "100% - 70% - 50% - 30%\n\n"
+            "Nếu thích vị trà đậm, bạn có thể chọn 100%."
+        )
+
+
+    # -----------------------------------------------------
+    # CẢM ƠN
+    # -----------------------------------------------------
+
+    if (
+        "cảm ơn" in q
+        or "cam on" in q
+    ):
+
+        return (
+            "🥰 Rất vui được phục vụ bạn! "
+            "Chúc bạn có một ly trà sữa thật ngon 🧋❤️"
+        )
+
+
+    # -----------------------------------------------------
+    # KHÔNG HIỂU
+    # -----------------------------------------------------
+
+    return (
+        "😊 Mình chưa hiểu rõ câu hỏi của bạn.\n\n"
+        "Bạn có thể hỏi mình những câu như:\n\n"
+        "• Bạn có thể tư vấn cho mình không?\n"
+        "• Món best seller của quán là gì?\n"
+        "• Bạn có giao hàng ngay không?\n"
+        "• Chương trình khuyến mãi của bạn là gì?\n"
+        "• Quán có những topping nào?\n"
+        "• Giá trà sữa bao nhiêu?\n"
+        "• Quán có những size nào?"
+    )
 
 
 # =========================================================
@@ -111,6 +455,7 @@ def create_invoice(customer_name, orders):
     text += "=" * 55 + "\n"
 
     text += f"Khách hàng: {customer_name}\n"
+
     text += (
         f"Thời gian: "
         f"{now.strftime('%d/%m/%Y %H:%M:%S')}\n"
@@ -122,47 +467,58 @@ def create_invoice(customer_name, orders):
 
         text += f"\n{i}. {item['drink']}\n"
 
+        text += f"   Size: {item['size']}\n"
+
         text += (
-            f"   Size: {item['size']}\n"
+            f"   Số lượng: "
+            f"{item['quantity']}\n"
         )
 
         text += (
-            f"   Số lượng: {item['quantity']}\n"
+            f"   Topping: "
+            f"{item['topping']}\n"
         )
 
         text += (
-            f"   Topping: {item['topping']}\n"
+            f"   Đường: "
+            f"{item['sugar']}\n"
         )
 
         text += (
-            f"   Đường: {item['sugar']}\n"
+            f"   Đá: "
+            f"{item['ice']}\n"
         )
 
         text += (
-            f"   Đá: {item['ice']}\n"
+            f"   Trà: "
+            f"{item['tea']}\n"
         )
 
         text += (
-            f"   Trà: {item['tea']}\n"
+            f"   Đơn giá: "
+            f"{money(item['unit_price'])}\n"
         )
 
         text += (
-            f"   Đơn giá: {money(item['unit_price'])}\n"
-        )
-
-        text += (
-            f"   Thành tiền: {money(item['total'])}\n"
+            f"   Thành tiền: "
+            f"{money(item['total'])}\n"
         )
 
         text += "-" * 55 + "\n"
 
     text += "\n"
+
     text += (
-        f"TỔNG THANH TOÁN: {money(total)}\n"
+        f"TỔNG THANH TOÁN: "
+        f"{money(total)}\n"
     )
 
     text += "=" * 55 + "\n"
-    text += "              CẢM ƠN QUÝ KHÁCH!\n"
+
+    text += (
+        "              CẢM ƠN QUÝ KHÁCH!\n"
+    )
+
     text += "=" * 55 + "\n"
 
     return text
@@ -175,7 +531,8 @@ def create_invoice(customer_name, orders):
 st.title("🧋 QUẢN LÝ BILL TRÀ SỮA")
 
 st.write(
-    "Nhập thông tin khách hàng và thêm từng món vào hóa đơn."
+    "Nhập thông tin khách hàng và thêm từng món "
+    "vào hóa đơn."
 )
 
 
@@ -211,7 +568,7 @@ with st.form("order_form"):
     with col1:
 
         drink = st.selectbox(
-            "Loại trà sữa",
+            "Loại món",
             list(MENU.keys())
         )
 
@@ -263,7 +620,9 @@ with st.form("order_form"):
         + TOPPINGS[topping]
     )
 
-    total_price = unit_price * quantity
+    total_price = (
+        unit_price * quantity
+    )
 
     st.info(
         "Đơn giá: "
@@ -303,7 +662,9 @@ if submitted:
             "total": total_price
         }
 
-        st.session_state.orders.append(order)
+        st.session_state.orders.append(
+            order
+        )
 
         st.success(
             "✅ Đã thêm món vào hóa đơn."
@@ -313,7 +674,7 @@ if submitted:
 
 
 # =========================================================
-# HIỂN THỊ HÓA ĐƠN HIỆN TẠI
+# HIỂN THỊ HÓA ĐƠN
 # =========================================================
 
 st.divider()
@@ -331,16 +692,13 @@ else:
 
     total_bill = 0
 
-    # -----------------------------------------------------
-    # HIỂN THỊ TỪNG MÓN
-    # -----------------------------------------------------
-
     for index, item in enumerate(
         st.session_state.orders
     ):
 
         st.subheader(
-            f"Món {index + 1}: {item['drink']}"
+            f"Món {index + 1}: "
+            f"{item['drink']}"
         )
 
         col1, col2, col3 = st.columns(3)
@@ -348,29 +706,35 @@ else:
         with col1:
 
             st.write(
-                f"**Size:** {item['size']}"
+                f"**Size:** "
+                f"{item['size']}"
             )
 
             st.write(
-                f"**Số lượng:** {item['quantity']}"
+                f"**Số lượng:** "
+                f"{item['quantity']}"
             )
 
             st.write(
-                f"**Topping:** {item['topping']}"
+                f"**Topping:** "
+                f"{item['topping']}"
             )
 
         with col2:
 
             st.write(
-                f"**Đường:** {item['sugar']}"
+                f"**Đường:** "
+                f"{item['sugar']}"
             )
 
             st.write(
-                f"**Đá:** {item['ice']}"
+                f"**Đá:** "
+                f"{item['ice']}"
             )
 
             st.write(
-                f"**Trà:** {item['tea']}"
+                f"**Trà:** "
+                f"{item['tea']}"
             )
 
         with col3:
@@ -390,7 +754,9 @@ else:
                 key=f"delete_{index}"
             ):
 
-                st.session_state.orders.pop(index)
+                st.session_state.orders.pop(
+                    index
+                )
 
                 st.rerun()
 
@@ -422,7 +788,7 @@ else:
     with col2:
 
         st.metric(
-            "Tổng số ly",
+            "Tổng số ly / món",
             total_quantity
         )
 
@@ -469,7 +835,9 @@ else:
 
         st.download_button(
             label="📥 TẢI HÓA ĐƠN",
-            data=invoice_text.encode("utf-8"),
+            data=invoice_text.encode(
+                "utf-8"
+            ),
             file_name=filename,
             mime="text/plain",
             use_container_width=True
@@ -483,7 +851,7 @@ else:
 
 
 # =========================================================
-# XÓA HÓA ĐƠN
+# XÓA TOÀN BỘ HÓA ĐƠN
 # =========================================================
 
 if len(st.session_state.orders) > 0:
@@ -496,5 +864,129 @@ if len(st.session_state.orders) > 0:
     ):
 
         st.session_state.orders = []
+
+        st.rerun()
+
+
+# =========================================================
+# CHATBOT TƯ VẤN KHÁCH HÀNG
+# =========================================================
+
+st.divider()
+
+st.header("🤖 Trợ lý tư vấn khách hàng")
+
+st.write(
+    "Xin chào 👋 Bạn có thể hỏi mình về món uống, "
+    "topping, giá, giao hàng hoặc chương trình khuyến mãi."
+)
+
+
+# ---------------------------------------------------------
+# HIỂN THỊ CÂU HỎI GỢI Ý
+# ---------------------------------------------------------
+
+st.markdown("**💡 Câu hỏi gợi ý:**")
+
+suggestion_cols = st.columns(4)
+
+suggestions = [
+    "Bạn có thể tư vấn cho mình không?",
+    "Món best seller của quán là gì?",
+    "Bạn có thể giao hàng ngay chứ?",
+    "Chương trình khuyến mãi của bạn là gì?"
+]
+
+for i, suggestion in enumerate(suggestions):
+
+    with suggestion_cols[i]:
+
+        if st.button(
+            suggestion,
+            key=f"suggestion_{i}",
+            use_container_width=True
+        ):
+
+            st.session_state.chat_messages.append(
+                {
+                    "role": "user",
+                    "content": suggestion
+                }
+            )
+
+            answer = chatbot_answer(
+                suggestion
+            )
+
+            st.session_state.chat_messages.append(
+                {
+                    "role": "assistant",
+                    "content": answer
+                }
+            )
+
+            st.rerun()
+
+
+# ---------------------------------------------------------
+# HIỂN THỊ LỊCH SỬ CHAT
+# ---------------------------------------------------------
+
+for message in st.session_state.chat_messages:
+
+    with st.chat_message(
+        message["role"]
+    ):
+
+        st.markdown(
+            message["content"]
+        )
+
+
+# ---------------------------------------------------------
+# Ô NHẬP CHAT
+# ---------------------------------------------------------
+
+user_question = st.chat_input(
+    "Nhập câu hỏi của bạn..."
+)
+
+
+if user_question:
+
+    # Hiển thị câu hỏi của khách
+    st.session_state.chat_messages.append(
+        {
+            "role": "user",
+            "content": user_question
+        }
+    )
+
+    # Chatbot trả lời
+    answer = chatbot_answer(
+        user_question
+    )
+
+    st.session_state.chat_messages.append(
+        {
+            "role": "assistant",
+            "content": answer
+        }
+    )
+
+    st.rerun()
+
+
+# =========================================================
+# XÓA LỊCH SỬ CHAT
+# =========================================================
+
+if len(st.session_state.chat_messages) > 0:
+
+    if st.button(
+        "🗑️ Xóa lịch sử trò chuyện"
+    ):
+
+        st.session_state.chat_messages = []
 
         st.rerun()
