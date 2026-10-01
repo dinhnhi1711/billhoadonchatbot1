@@ -14,7 +14,7 @@ import urllib.error
 # =========================================================
 
 st.set_page_config(
-    page_title="Lucky Tea",
+    page_title="Tea Tee",
     page_icon="🧋",
     layout="wide",
     initial_sidebar_state="collapsed",
