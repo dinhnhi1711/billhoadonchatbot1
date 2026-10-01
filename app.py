@@ -24,6 +24,7 @@ MENU = {
     "Trà sữa trân châu đường đen": 40000,
     "Trà sữa ô long": 35000,
     "Trà sữa thái xanh": 35000,
+    "Bánh tráng phơi sương trứng cút": 25000
 }
 
 TOPPINGS = {
