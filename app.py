@@ -1,8 +1,10 @@
 import streamlit as st
 from datetime import datetime
+from openai import OpenAI
+
 
 # =========================================================
-# CẤU HÌNH
+# CẤU HÌNH STREAMLIT
 # =========================================================
 
 st.set_page_config(
@@ -11,13 +13,14 @@ st.set_page_config(
     layout="wide"
 )
 
+
 # =========================================================
 # LOGO
 # =========================================================
 
 try:
     st.image("logo.jpg", width=250)
-except:
+except Exception:
     pass
 
 
@@ -76,7 +79,6 @@ MENU = {
         "L": 35000
     },
 
-    # Món không có size
     "Bánh tráng phơi sương trứng cút": {
         "M": 25000,
         "L": 25000
@@ -128,6 +130,38 @@ TEA_LEVELS = [
 
 
 # =========================================================
+# THÔNG TIN QUÁN
+# Bạn có thể sửa phần này theo quán thật
+# =========================================================
+
+SHOP_INFO = {
+    "best_seller": [
+        "Trà sữa truyền thống",
+        "Trà sữa matcha",
+        "Trà sữa khoai môn"
+    ],
+
+    "delivery": (
+        "Quán có hỗ trợ giao hàng. "
+        "Khách vui lòng cung cấp địa chỉ và số điện thoại "
+        "để quán kiểm tra khả năng giao hàng."
+    ),
+
+    "promotion": (
+        "Hiện quán chưa cấu hình chương trình khuyến mãi "
+        "cụ thể trong hệ thống. Khách vui lòng hỏi nhân viên "
+        "để biết chương trình đang áp dụng trong ngày."
+    ),
+
+    "address": "Bạn hãy cập nhật địa chỉ quán tại đây.",
+
+    "phone": "Bạn hãy cập nhật số điện thoại quán tại đây.",
+
+    "opening_hours": "Bạn hãy cập nhật giờ mở cửa tại đây."
+}
+
+
+# =========================================================
 # SESSION STATE
 # =========================================================
 
@@ -150,289 +184,231 @@ def money(value):
 
 
 # =========================================================
-# HÀM LẤY GIÁ
+# TẠO THÔNG TIN MENU CHO AI
 # =========================================================
 
-def get_price(drink, size):
+def build_menu_text():
 
-    return MENU[drink][size]
+    text = "DANH SÁCH MENU:\n"
+
+    for drink, sizes in MENU.items():
+
+        text += f"- {drink}: "
+
+        if sizes["M"] == sizes["L"]:
+            text += f"{money(sizes['M'])}\n"
+        else:
+            text += (
+                f"Size M {money(sizes['M'])}, "
+                f"Size L {money(sizes['L'])}\n"
+            )
+
+    text += "\nTOPPING:\n"
+
+    for topping, price in TOPPINGS.items():
+
+        if price == 0:
+            text += f"- {topping}: miễn phí\n"
+        else:
+            text += f"- {topping}: {money(price)}\n"
+
+    text += "\nMỨC ĐƯỜNG:\n"
+    text += ", ".join(SUGAR_LEVELS)
+
+    text += "\n\nMỨC ĐÁ:\n"
+    text += ", ".join(ICE_LEVELS)
+
+    text += "\n\nMỨC TRÀ:\n"
+    text += ", ".join(TEA_LEVELS)
+
+    return text
 
 
 # =========================================================
-# CHATBOT
+# TẠO SYSTEM PROMPT CHO CHATBOT
+# =========================================================
+
+def build_system_prompt():
+
+    menu_text = build_menu_text()
+
+    best_seller = ", ".join(
+        SHOP_INFO["best_seller"]
+    )
+
+    return f"""
+Bạn là trợ lý AI chăm sóc khách hàng cho một quán trà sữa.
+
+NHIỆM VỤ:
+- Tư vấn đồ uống cho khách.
+- Giải thích menu.
+- Giải thích giá.
+- Tư vấn topping.
+- Tư vấn mức đường, đá, trà.
+- Trả lời câu hỏi về giao hàng.
+- Trả lời câu hỏi về chương trình khuyến mãi.
+- Tư vấn món phù hợp với sở thích và ngân sách của khách.
+- Nói chuyện thân thiện, tự nhiên bằng tiếng Việt.
+
+PHONG CÁCH:
+- Thân thiện.
+- Ngắn gọn.
+- Dễ hiểu.
+- Có thể dùng emoji vừa phải.
+- Không trả lời quá dài nếu khách chỉ hỏi một câu đơn giản.
+
+QUY TẮC QUAN TRỌNG:
+1. Chỉ sử dụng thông tin menu và giá được cung cấp bên dưới.
+2. Không tự bịa ra món hoặc giá không có trong menu.
+3. Không tự bịa chương trình khuyến mãi.
+4. Nếu không có thông tin, hãy nói rõ là quán chưa cập nhật thông tin đó.
+5. Khi khách hỏi "best seller", hãy giới thiệu các món:
+   {best_seller}
+6. Khi khách hỏi giao hàng, sử dụng thông tin giao hàng được cung cấp.
+7. Nếu khách muốn được tư vấn món, hãy hỏi thêm sở thích nếu cần:
+   - thích béo hay thanh
+   - thích trà sữa hay trà trái cây
+   - thích ngọt nhiều hay ít
+   - thích nhiều đá hay ít đá
+   - ngân sách khoảng bao nhiêu
+8. Không tự xác nhận đơn hàng hoặc thanh toán thay cho hệ thống bill.
+9. Nếu khách muốn đặt món, hãy hướng dẫn khách sử dụng phần "Thêm món" của ứng dụng.
+
+THÔNG TIN QUÁN:
+
+Best seller:
+{best_seller}
+
+Giao hàng:
+{SHOP_INFO["delivery"]}
+
+Khuyến mãi:
+{SHOP_INFO["promotion"]}
+
+Địa chỉ:
+{SHOP_INFO["address"]}
+
+Số điện thoại:
+{SHOP_INFO["phone"]}
+
+Giờ mở cửa:
+{SHOP_INFO["opening_hours"]}
+
+{menu_text}
+"""
+
+
+# =========================================================
+# LẤY OPENROUTER API KEY
+# =========================================================
+
+def get_api_key():
+
+    # Ưu tiên Streamlit Secrets
+    try:
+        key = st.secrets["OPENROUTER_API_KEY"]
+
+        if key:
+            return key
+
+    except Exception:
+        pass
+
+    # Nếu chạy local có biến môi trường
+    import os
+
+    key = os.getenv(
+        "OPENROUTER_API_KEY"
+    )
+
+    return key
+
+
+# =========================================================
+# KHỞI TẠO OPENROUTER CLIENT
+# =========================================================
+
+def get_ai_client():
+
+    api_key = get_api_key()
+
+    if not api_key:
+        return None
+
+    return OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=api_key
+    )
+
+
+# =========================================================
+# GỌI CHATBOT AI
 # =========================================================
 
 def chatbot_answer(question):
 
-    q = question.lower().strip()
+    client = get_ai_client()
 
-    # -----------------------------------------------------
-    # CHÀO HỎI
-    # -----------------------------------------------------
-
-    if any(word in q for word in [
-        "xin chào",
-        "hello",
-        "hi",
-        "chào"
-    ]):
+    if client is None:
 
         return (
-            "Xin chào 👋 Mình là trợ lý của quán trà sữa. "
-            "Mình có thể tư vấn món, topping, giá, "
-            "best seller, giao hàng và chương trình khuyến mãi "
-            "cho bạn."
+            "⚠️ Chatbot AI chưa được cấu hình API key.\n\n"
+            "Bạn hãy tạo file `.streamlit/secrets.toml` "
+            "và thêm:\n\n"
+            "`OPENROUTER_API_KEY = \"your-key\"`"
         )
 
+    try:
 
-    # -----------------------------------------------------
-    # TƯ VẤN
-    # -----------------------------------------------------
+        messages = [
+            {
+                "role": "system",
+                "content": build_system_prompt()
+            }
+        ]
 
-    if (
-        "tư vấn" in q
-        or "tư vấn cho mình" in q
-        or "tư vấn món" in q
-    ):
+        # Giới hạn lịch sử để tránh request quá dài
+        history = st.session_state.chat_messages[-12:]
+
+        for message in history:
+
+            messages.append(
+                {
+                    "role": message["role"],
+                    "content": message["content"]
+                }
+            )
+
+        messages.append(
+            {
+                "role": "user",
+                "content": question
+            }
+        )
+
+        response = client.chat.completions.create(
+            model="openrouter/auto",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=700
+        )
+
+        answer = response.choices[0].message.content
+
+        if not answer:
+            return (
+                "Xin lỗi, mình chưa nhận được câu trả lời. "
+                "Bạn thử hỏi lại giúp mình nhé."
+            )
+
+        return answer
+
+    except Exception as e:
 
         return (
-            "Tất nhiên rồi 🧋😊\n\n"
-            "Nếu bạn thích vị truyền thống, mình gợi ý "
-            "**Trà sữa truyền thống**.\n\n"
-            "Nếu bạn thích vị thơm, béo và nhẹ nhàng, "
-            "có thể thử **Trà sữa matcha** hoặc "
-            "**Trà sữa khoai môn**.\n\n"
-            "Nếu thích vị trái cây, bạn có thể thử "
-            "**Trà đào, Trà vải, Trà trái cây hoặc Trà mãng cầu**.\n\n"
-            "Bạn cũng có thể thêm **trân châu, thạch hoặc pudding**."
+            "❌ Không thể kết nối chatbot AI.\n\n"
+            f"Chi tiết lỗi: `{str(e)}`"
         )
-
-
-    # -----------------------------------------------------
-    # BEST SELLER
-    # -----------------------------------------------------
-
-    if (
-        "best seller" in q
-        or "bán chạy" in q
-        or "món bán chạy" in q
-        or "món ngon nhất" in q
-        or "món nào ngon" in q
-    ):
-
-        return (
-            "⭐ Các món được quán giới thiệu nổi bật gồm:\n\n"
-            "🥇 **Trà sữa truyền thống** – vị quen thuộc, "
-            "dễ uống.\n\n"
-            "🥈 **Trà sữa matcha** – thơm vị matcha, "
-            "phù hợp với người thích vị thanh nhẹ.\n\n"
-            "🥉 **Trà sữa khoai môn** – béo và thơm.\n\n"
-            "Nếu bạn thích vị trái cây, mình gợi ý "
-            "**Trà đào hoặc Trà mãng cầu**."
-        )
-
-
-    # -----------------------------------------------------
-    # GIAO HÀNG
-    # -----------------------------------------------------
-
-    if (
-        "giao hàng" in q
-        or "giao hang" in q
-        or "ship" in q
-        or "giao ngay" in q
-        or "giao liền" in q
-    ):
-
-        return (
-            "🛵 Quán có hỗ trợ giao hàng.\n\n"
-            "Bạn vui lòng cung cấp địa chỉ nhận hàng "
-            "và số điện thoại để quán kiểm tra khả năng "
-            "giao đến khu vực của bạn nhé.\n\n"
-            "Thời gian giao hàng thực tế có thể phụ thuộc "
-            "vào khoảng cách và tình trạng đơn hàng."
-        )
-
-
-    # -----------------------------------------------------
-    # KHUYẾN MÃI
-    # -----------------------------------------------------
-
-    if (
-        "khuyến mãi" in q
-        or "khuyen mai" in q
-        or "ưu đãi" in q
-        or "giảm giá" in q
-        or "giam gia" in q
-        or "promotion" in q
-    ):
-
-        return (
-            "🎁 Hiện quán đang có các chương trình ưu đãi "
-            "dành cho khách hàng.\n\n"
-            "Bạn có thể hỏi nhân viên tại quầy để biết "
-            "chương trình áp dụng trong ngày.\n\n"
-            "💡 Nếu bạn muốn, mình cũng có thể giúp bạn "
-            "chọn món phù hợp với ngân sách."
-        )
-
-
-    # -----------------------------------------------------
-    # GIÁ
-    # -----------------------------------------------------
-
-    if (
-        "giá" in q
-        or "bao nhiêu tiền" in q
-        or "bao nhieu tien" in q
-        or "giá bao nhiêu" in q
-    ):
-
-        return (
-            "💰 Giá các món hiện tại:\n\n"
-            "• Trà sữa truyền thống: 30.000đ - 35.000đ\n"
-            "• Trà sữa matcha: 35.000đ - 40.000đ\n"
-            "• Trà sữa socola: 35.000đ - 40.000đ\n"
-            "• Trà sữa khoai môn: 35.000đ - 40.000đ\n"
-            "• Trà thái xanh: 30.000đ - 35.000đ\n"
-            "• Trà thái đỏ: 30.000đ - 35.000đ\n"
-            "• Trà đào: 30.000đ - 35.000đ\n"
-            "• Trà vải: 30.000đ - 35.000đ\n"
-            "• Trà trái cây: 30.000đ - 35.000đ\n"
-            "• Trà mãng cầu: 30.000đ - 35.000đ\n"
-            "• Bánh tráng phơi sương trứng cút: 25.000đ"
-        )
-
-
-    # -----------------------------------------------------
-    # TOPPING
-    # -----------------------------------------------------
-
-    if (
-        "topping" in q
-        or "thêm gì" in q
-        or "có topping" in q
-    ):
-
-        topping_text = "🧋 Quán hiện có các topping:\n\n"
-
-        for topping, price in TOPPINGS.items():
-
-            if price == 0:
-
-                topping_text += (
-                    f"• {topping}\n"
-                )
-
-            else:
-
-                topping_text += (
-                    f"• {topping}: {money(price)}\n"
-                )
-
-        return topping_text
-
-
-    # -----------------------------------------------------
-    # SIZE
-    # -----------------------------------------------------
-
-    if (
-        "size" in q
-        or "cỡ" in q
-        or "ly" in q
-    ):
-
-        return (
-            "🥤 Quán có 2 size:\n\n"
-            "• Size M\n"
-            "• Size L\n\n"
-            "Size L sẽ có giá cao hơn size M "
-            "đối với các món trà sữa và trà."
-        )
-
-
-    # -----------------------------------------------------
-    # ĐƯỜNG
-    # -----------------------------------------------------
-
-    if (
-        "đường" in q
-        or "ngọt" in q
-        or "độ ngọt" in q
-    ):
-
-        return (
-            "🍬 Quán có các mức đường:\n\n"
-            "100% - 70% - 50% - 30% - 0%\n\n"
-            "Nếu bạn không thích quá ngọt, mình gợi ý "
-            "50% hoặc 30% đường."
-        )
-
-
-    # -----------------------------------------------------
-    # ĐÁ
-    # -----------------------------------------------------
-
-    if (
-        "đá" in q
-        or "độ đá" in q
-    ):
-
-        return (
-            "🧊 Quán có các mức đá:\n\n"
-            "100% - 70% - 50% - 30% - 0%\n\n"
-            "Bạn có thể chọn mức đá phù hợp với sở thích."
-        )
-
-
-    # -----------------------------------------------------
-    # TRÀ
-    # -----------------------------------------------------
-
-    if (
-        "mức trà" in q
-        or "độ trà" in q
-        or "trà bao nhiêu" in q
-    ):
-
-        return (
-            "🍵 Mức trà hiện có:\n\n"
-            "100% - 70% - 50% - 30%\n\n"
-            "Nếu thích vị trà đậm, bạn có thể chọn 100%."
-        )
-
-
-    # -----------------------------------------------------
-    # CẢM ƠN
-    # -----------------------------------------------------
-
-    if (
-        "cảm ơn" in q
-        or "cam on" in q
-    ):
-
-        return (
-            "🥰 Rất vui được phục vụ bạn! "
-            "Chúc bạn có một ly trà sữa thật ngon 🧋❤️"
-        )
-
-
-    # -----------------------------------------------------
-    # KHÔNG HIỂU
-    # -----------------------------------------------------
-
-    return (
-        "😊 Mình chưa hiểu rõ câu hỏi của bạn.\n\n"
-        "Bạn có thể hỏi mình những câu như:\n\n"
-        "• Bạn có thể tư vấn cho mình không?\n"
-        "• Món best seller của quán là gì?\n"
-        "• Bạn có giao hàng ngay không?\n"
-        "• Chương trình khuyến mãi của bạn là gì?\n"
-        "• Quán có những topping nào?\n"
-        "• Giá trà sữa bao nhiêu?\n"
-        "• Quán có những size nào?"
-    )
 
 
 # =========================================================
@@ -454,7 +430,9 @@ def create_invoice(customer_name, orders):
     text += "             HÓA ĐƠN TRÀ SỮA\n"
     text += "=" * 55 + "\n"
 
-    text += f"Khách hàng: {customer_name}\n"
+    text += (
+        f"Khách hàng: {customer_name}\n"
+    )
 
     text += (
         f"Thời gian: "
@@ -465,9 +443,13 @@ def create_invoice(customer_name, orders):
 
     for i, item in enumerate(orders, 1):
 
-        text += f"\n{i}. {item['drink']}\n"
+        text += (
+            f"\n{i}. {item['drink']}\n"
+        )
 
-        text += f"   Size: {item['size']}\n"
+        text += (
+            f"   Size: {item['size']}\n"
+        )
 
         text += (
             f"   Số lượng: "
@@ -561,10 +543,6 @@ with st.form("order_form"):
 
     col1, col2 = st.columns(2)
 
-    # -----------------------------------------------------
-    # CỘT 1
-    # -----------------------------------------------------
-
     with col1:
 
         drink = st.selectbox(
@@ -589,10 +567,6 @@ with st.form("order_form"):
             "Topping",
             list(TOPPINGS.keys())
         )
-
-    # -----------------------------------------------------
-    # CỘT 2
-    # -----------------------------------------------------
 
     with col2:
 
@@ -869,26 +843,24 @@ if len(st.session_state.orders) > 0:
 
 
 # =========================================================
-# CHATBOT TƯ VẤN KHÁCH HÀNG
+# CHATBOT AI
 # =========================================================
 
 st.divider()
 
-st.header("🤖 Trợ lý tư vấn khách hàng")
+st.header("🤖 Trợ lý AI của quán")
 
 st.write(
-    "Xin chào 👋 Bạn có thể hỏi mình về món uống, "
-    "topping, giá, giao hàng hoặc chương trình khuyến mãi."
+    "Bạn có thể hỏi mình về menu, giá, món bán chạy, "
+    "topping, giao hàng, khuyến mãi hoặc nhờ tư vấn món."
 )
 
 
-# ---------------------------------------------------------
-# HIỂN THỊ CÂU HỎI GỢI Ý
-# ---------------------------------------------------------
+# =========================================================
+# CÂU HỎI GỢI Ý
+# =========================================================
 
-st.markdown("**💡 Câu hỏi gợi ý:**")
-
-suggestion_cols = st.columns(4)
+st.markdown("### 💡 Bạn có thể hỏi")
 
 suggestions = [
     "Bạn có thể tư vấn cho mình không?",
@@ -897,16 +869,19 @@ suggestions = [
     "Chương trình khuyến mãi của bạn là gì?"
 ]
 
+suggestion_cols = st.columns(4)
+
 for i, suggestion in enumerate(suggestions):
 
     with suggestion_cols[i]:
 
         if st.button(
             suggestion,
-            key=f"suggestion_{i}",
+            key=f"ai_suggestion_{i}",
             use_container_width=True
         ):
 
+            # Lưu câu hỏi vào lịch sử
             st.session_state.chat_messages.append(
                 {
                     "role": "user",
@@ -914,10 +889,14 @@ for i, suggestion in enumerate(suggestions):
                 }
             )
 
-            answer = chatbot_answer(
-                suggestion
-            )
+            # Gọi AI
+            with st.spinner("🤖 Đang suy nghĩ..."):
 
+                answer = chatbot_answer(
+                    suggestion
+                )
+
+            # Lưu câu trả lời
             st.session_state.chat_messages.append(
                 {
                     "role": "assistant",
@@ -928,9 +907,9 @@ for i, suggestion in enumerate(suggestions):
             st.rerun()
 
 
-# ---------------------------------------------------------
+# =========================================================
 # HIỂN THỊ LỊCH SỬ CHAT
-# ---------------------------------------------------------
+# =========================================================
 
 for message in st.session_state.chat_messages:
 
@@ -943,18 +922,21 @@ for message in st.session_state.chat_messages:
         )
 
 
-# ---------------------------------------------------------
-# Ô NHẬP CHAT
-# ---------------------------------------------------------
+# =========================================================
+# Ô CHAT
+# =========================================================
 
 user_question = st.chat_input(
-    "Nhập câu hỏi của bạn..."
+    "🧋 Nhập câu hỏi của bạn..."
 )
 
 
 if user_question:
 
-    # Hiển thị câu hỏi của khách
+    # -----------------------------------------------------
+    # LƯU CÂU HỎI
+    # -----------------------------------------------------
+
     st.session_state.chat_messages.append(
         {
             "role": "user",
@@ -962,10 +944,21 @@ if user_question:
         }
     )
 
-    # Chatbot trả lời
-    answer = chatbot_answer(
-        user_question
-    )
+    # -----------------------------------------------------
+    # GỌI AI
+    # -----------------------------------------------------
+
+    with st.spinner(
+        "🤖 Trợ lý đang trả lời..."
+    ):
+
+        answer = chatbot_answer(
+            user_question
+        )
+
+    # -----------------------------------------------------
+    # LƯU CÂU TRẢ LỜI
+    # -----------------------------------------------------
 
     st.session_state.chat_messages.append(
         {
@@ -984,7 +977,8 @@ if user_question:
 if len(st.session_state.chat_messages) > 0:
 
     if st.button(
-        "🗑️ Xóa lịch sử trò chuyện"
+        "🗑️ Xóa lịch sử trò chuyện",
+        key="clear_chat"
     ):
 
         st.session_state.chat_messages = []
