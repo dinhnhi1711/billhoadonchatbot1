@@ -23,9 +23,6 @@ MENU = {
     "Trà sữa trân châu đường đen": 40000,
     "Trà sữa ô long": 35000,
     "Trà sữa thái xanh": 35000,
-    "Trà mãng cầu": 35000,
-    "Trà trái cây nhiệt đới": 35000,
-    "Bánh tráng phơi sương trứng cút": 25000,
 }
 
 TOPPINGS = {
@@ -41,7 +38,7 @@ TOPPINGS = {
 
 SUGAR_LEVELS = ["100%", "70%", "50%", "0%"]
 ICE_LEVELS = ["100%", "70%", "50%", "0%"]
-TEA_LEVELS = ["100%", "70%", "50%", "30%"]
+TEA_LEVELS = ["100%", "70%", "30%", "0%"]
 
 
 # =========================
@@ -243,3 +240,13 @@ if st.button(
         mime="text/plain",
         use_container_width=True
     )
+
+Chạy app
+
+Tạo thư mục, lưu code trên thành app.py, sau đó chạy:
+
+pip install streamlit
+streamlit run app.py
+
+
+App sẽ mở trên trình duyệt. Hóa đơn sau khi thanh toán có thể tải xuống thành file .txt.
